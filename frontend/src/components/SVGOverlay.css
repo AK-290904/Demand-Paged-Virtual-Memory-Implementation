@@ -1,0 +1,141 @@
+.svg-overlay-container {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #333;
+  min-height: 300px;
+}
+
+.page-tables-section h3 {
+  margin: 0 0 15px 0;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.page-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.page-table-container {
+  background: #252525;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #333;
+}
+
+.page-table-header {
+  font-weight: bold;
+  color: #646cff;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+  font-size: 1rem;
+}
+
+.page-table-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.page-table-entry {
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  position: relative; /* FIX 4 - Keep hover area consistent */
+}
+
+.page-table-entry:hover {
+  background: #2a2a2a;
+  border-color: #646cff;
+  transform: translateX(4px);
+}
+
+.page-table-entry.hovered {
+  background: #2a2a2a;
+  border-color: #646cff;
+  box-shadow: 0 0 10px rgba(100, 108, 255, 0.3);
+}
+
+.page-table-entry.valid {
+  border-left: 3px solid #51cf66;
+}
+
+.page-table-entry.invalid {
+  border-left: 3px solid #ff6b6b;
+  opacity: 0.6;
+}
+
+.entry-page {
+  font-size: 0.85rem;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.entry-frame {
+  font-size: 0.8rem;
+  color: #646cff;
+  font-weight: 600;
+}
+
+.page-table-empty {
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.connection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none !important; /* FIX 2 - Ensure SVG doesn't receive hover events */
+  z-index: 10;
+}
+
+.connection-overlay * {
+  pointer-events: none !important; /* FIX 2 - All SVG elements should not receive events */
+}
+
+.connection-path {
+  animation: path-dash 2s linear infinite;
+}
+
+@keyframes path-dash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 20;
+  }
+}
+
+.connection-start,
+.connection-end {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.3);
+  }
+}
+
