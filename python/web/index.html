@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Memory Implementor - Python Edition</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1> Virtual Memory Implementor</h1>
+            <p class="subtitle">Demand-Paged Virtual Memory with TLB - Python Edition</p>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2> Configuration</h2>
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="numProcesses">Number of Processes (k)</label>
+                    <input type="number" id="numProcesses" min="1" max="10" value="4">
+                </div>
+                <div class="config-item">
+                    <label for="maxPages">Max Pages per Process (m)</label>
+                    <input type="number" id="maxPages" min="1" max="20" value="5">
+                </div>
+                <div class="config-item">
+                    <label for="numFrames">Physical Frames (f)</label>
+                    <input type="number" id="numFrames" min="1" max="30" value="8">
+                </div>
+                <div class="config-item">
+                    <label for="tlbSize">TLB Size (s)</label>
+                    <input type="number" id="tlbSize" min="1" max="10" value="4">
+                </div>
+                <div class="config-item">
+                    <label for="algorithm">Page Replacement Algorithm</label>
+                    <select id="algorithm">
+                        <option value="LRU">LRU (Least Recently Used)</option>
+                        <option value="FIFO">FIFO (First In First Out)</option>
+                        <option value="LFU">LFU (Least Frequently Used)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="startBtn" class="btn btn-primary"> Start Simulation</button>
+                <button id="resetBtn" class="btn btn-secondary"> Reset</button>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="stats-dashboard" id="statsDashboard" style="display: none;">
+            <h2> Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total References</div>
+                    <div class="stat-value" id="totalRefs">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Page Faults</div>
+                    <div class="stat-value" id="pageFaults">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Page Fault Rate</div>
+                    <div class="stat-value" id="faultRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">TLB Hits</div>
+                    <div class="stat-value" id="tlbHits">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">TLB Hit Rate</div>
+                    <div class="stat-value" id="tlbHitRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Page Hits</div>
+                    <div class="stat-value" id="pageHits">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="navigation" id="navigation" style="display: none;">
+            <button id="prevBtn" class="btn btn-nav"> Previous</button>
+            <span class="step-info">
+                Step <span id="currentStep">0</span> of <span id="totalSteps">0</span>
+            </span>
+            <button id="nextBtn" class="btn btn-nav">Next </button>
+            <button id="autoPlayBtn" class="btn btn-auto">⏯ Auto Play</button>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="visualization" id="visualization" style="display: none;">
+            <!-- Current Event -->
+            <div class="event-display">
+                <h3>Current Event</h3>
+                <div id="currentEvent" class="event-message">No event</div>
+            </div>
+
+            <!-- Physical Memory -->
+            <div class="memory-section">
+                <h3> Physical Memory (Frames)</h3>
+                <div id="physicalMemory" class="memory-grid"></div>
+            </div>
+
+            <!-- TLB -->
+            <div class="tlb-section">
+                <h3> Translation Lookaside Buffer (TLB)</h3>
+                <div id="tlbDisplay" class="tlb-grid"></div>
+            </div>
+
+            <!-- Page Tables -->
+            <div class="page-tables-section">
+                <h3> Page Tables</h3>
+                <div id="pageTables" class="page-tables-container"></div>
+            </div>
+
+            <!-- Free Frames -->
+            <div class="free-frames-section">
+                <h3> Free Frames</h3>
+                <div id="freeFrames" class="free-frames-display"></div>
+            </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="event-log" id="eventLog" style="display: none;">
+            <h2> Event Log</h2>
+            <div class="log-controls">
+                <input type="text" id="logSearch" placeholder="Search events...">
+                <select id="logFilter">
+                    <option value="all">All Events</option>
+                    <option value="page_fault">Page Faults</option>
+                    <option value="tlb_hit">TLB Hits</option>
+                    <option value="page_hit">Page Hits</option>
+                    <option value="process_complete">Process Complete</option>
+                </select>
+            </div>
+            <div id="logEntries" class="log-entries"></div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+            <div class="spinner"></div>
+            <p>Running simulation...</p>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Memory Implementor - Professional Edition</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        secondary: '#06b6d4',
+                        accent: '#8b5cf6',
+                        success: '#10b981',
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom animations */
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(79, 70, 229, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.8), 0 0 30px rgba(79, 70, 229, 0.6); }
+        }
+        
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(79, 70, 229, 0.5); }
+            50% { border-color: rgba(79, 70, 229, 1); }
+        }
+        
+        @keyframes slide-in {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .glow-effect {
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        .pulse-border {
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+        
+        .slide-in {
+            animation: slide-in 0.3s ease-out;
+        }
+        
+        /* Glass card effect */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Frame states */
+        .frame-free {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-color: #10b981;
+        }
+        
+        .frame-occupied {
+            background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+            border-color: #4f46e5;
+        }
+        
+        .frame-fault {
+            background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);
+            border-color: #ef4444;
+        }
+        
+        .frame-hit {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+            border-color: #10b981;
+        }
+        
+        /* TLB states */
+        .tlb-hit {
+            background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+            border-left: 4px solid #10b981;
+        }
+        
+        .tlb-miss {
+            background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);
+            border-left: 4px solid #ef4444;
+        }
+        
+        /* Event log colors */
+        .event-page-fault {
+            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .event-tlb-hit {
+            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .event-page-hit {
+            border-left-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.1);
+        }
+        
+        .event-process-complete {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
+    
+    <!-- Header -->
+    <header class="glass-card shadow-2xl mb-6 sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                        Virtual Memory Implementor
+                    </h1>
+                    <p class="text-gray-400 text-sm mt-1">Professional Demand Paging Implementation</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="helpBtn" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-all">
+                        Help
+                    </button>
+                    <button id="exportBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all">
+                        Export Results
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 pb-8">
+        
+        <!-- Configuration Panel -->
+        <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-indigo-400">Configuration</h2>
+                <div class="flex space-x-2">
+                    <button class="preset-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-all" data-preset="simple">
+                        Simple Demo
+                    </button>
+                    <button class="preset-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-all" data-preset="thrashing">
+                        Thrashing
+                    </button>
+                    <button class="preset-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-all" data-preset="prefetch">
+                        Prefetch Demo
+                    </button>
+                    <button class="preset-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-all" data-preset="looping">
+                        Looping
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- Basic Configuration -->
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">Number of Processes</label>
+                    <input type="number" id="numProcesses" min="1" max="10" value="4" 
+                           class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">Max Pages per Process</label>
+                    <input type="number" id="maxPages" min="1" max="20" value="5" 
+                           class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">Physical Frames</label>
+                    <input type="number" id="numFrames" min="1" max="30" value="8" 
+                           class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">TLB Size</label>
+                    <input type="number" id="tlbSize" min="1" max="10" value="4" 
+                           class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-300">Page Replacement Algorithm</label>
+                    <select id="algorithm" class="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
+                        <option value="LRU">LRU (Least Recently Used)</option>
+                        <option value="FIFO">FIFO (First In First Out)</option>
+                        <option value="LFU">LFU (Least Frequently Used)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Advanced Options -->
+            <div class="border-t border-gray-700 pt-4 mb-6">
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4">Advanced Options</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="enableDirtyBits" checked class="w-5 h-5 text-indigo-600 bg-gray-800 border-gray-700 rounded focus:ring-indigo-500">
+                        <span class="text-sm">Enable Dirty Bits</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="enablePrefetch" class="w-5 h-5 text-indigo-600 bg-gray-800 border-gray-700 rounded focus:ring-indigo-500">
+                        <span class="text-sm">Enable Prefetching</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="enableWorkingSet" checked class="w-5 h-5 text-indigo-600 bg-gray-800 border-gray-700 rounded focus:ring-indigo-500">
+                        <span class="text-sm">Track Working Set</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="explainMode" class="w-5 h-5 text-indigo-600 bg-gray-800 border-gray-700 rounded focus:ring-indigo-500">
+                        <span class="text-sm">Explain Mode</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex space-x-4">
+                <button id="startBtn" class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                    Start Implementation
+                </button>
+                <button id="resetBtn" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition-all">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div id="statsDashboard" class="glass-card rounded-xl p-6 mb-6 shadow-2xl hidden">
+            <h2 class="text-2xl font-bold text-cyan-400 mb-6">Real-Time Statistics</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-gray-800 to-gray-900 p-4 rounded-lg border border-gray-700">
+                    <div class="text-sm text-gray-400 mb-1">Total References</div>
+                    <div id="totalRefs" class="text-2xl font-bold text-white">0</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-red-900/30 to-red-800/30 p-4 rounded-lg border border-red-700/50">
+                    <div class="text-sm text-gray-400 mb-1">Page Faults</div>
+                    <div id="pageFaults" class="text-2xl font-bold text-red-400">0</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-red-900/20 to-red-800/20 p-4 rounded-lg border border-red-700/30">
+                    <div class="text-sm text-gray-400 mb-1">Fault Rate</div>
+                    <div id="faultRate" class="text-2xl font-bold text-red-300">0%</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-green-900/30 to-green-800/30 p-4 rounded-lg border border-green-700/50">
+                    <div class="text-sm text-gray-400 mb-1">TLB Hits</div>
+                    <div id="tlbHits" class="text-2xl font-bold text-green-400">0</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-green-900/20 to-green-800/20 p-4 rounded-lg border border-green-700/30">
+                    <div class="text-sm text-gray-400 mb-1">TLB Hit Rate</div>
+                    <div id="tlbHitRate" class="text-2xl font-bold text-green-300">0%</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/30 p-4 rounded-lg border border-blue-700/50">
+                    <div class="text-sm text-gray-400 mb-1">Disk I/O</div>
+                    <div id="diskIO" class="text-2xl font-bold text-blue-400">0</div>
+                </div>
+            </div>
+            
+            <!-- Visual Statistics -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-4">Page Fault Analysis</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">Page Faults</span>
+                                <span class="text-red-400 font-semibold"><span id="chartPageFaults">0</span> / <span id="chartTotalRefs">0</span></span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3">
+                                <div id="faultProgressBar" class="bg-gradient-to-r from-red-600 to-red-400 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">Page Hits</span>
+                                <span class="text-green-400 font-semibold"><span id="chartPageHits">0</span> references</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3">
+                                <div id="hitProgressBar" class="bg-gradient-to-r from-green-600 to-green-400 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-4">TLB Performance</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">TLB Hits</span>
+                                <span class="text-cyan-400 font-semibold"><span id="chartTlbHits">0</span> lookups</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3">
+                                <div id="tlbHitProgressBar" class="bg-gradient-to-r from-cyan-600 to-cyan-400 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-gray-400">TLB Misses</span>
+                                <span class="text-orange-400 font-semibold"><span id="chartTlbMisses">0</span> lookups</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-3">
+                                <div id="tlbMissProgressBar" class="bg-gradient-to-r from-orange-600 to-orange-400 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div id="navigation" class="glass-card rounded-xl p-4 mb-6 shadow-2xl hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <button id="prevBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Previous
+                    </button>
+                    <button id="nextBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Next
+                    </button>
+                    <button id="autoPlayBtn" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition-all">
+                        Auto Play
+                    </button>
+                </div>
+                
+                <div class="text-center">
+                    <span class="text-lg font-semibold">
+                        Step <span id="currentStep" class="text-cyan-400">0</span> of <span id="totalSteps" class="text-cyan-400">0</span>
+                    </span>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm text-gray-400">Speed:</label>
+                    <input type="range" id="speedSlider" min="250" max="2000" value="1000" step="250" class="w-32">
+                    <span id="speedLabel" class="text-sm text-gray-300">1x</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Visualization Area -->
+        <div id="visualization" class="hidden">
+            
+            <!-- Current Event Display -->
+            <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+                <h3 class="text-lg font-semibold text-purple-400 mb-3">Current Event</h3>
+                <div id="currentEvent" class="text-xl font-medium text-white p-4 bg-gray-800/50 rounded-lg border-l-4 border-indigo-500">
+                    No event
+                </div>
+                <div id="explanation" class="mt-4 text-sm text-gray-400 p-4 bg-gray-800/30 rounded-lg hidden">
+                    <!-- Explanation text will appear here in explain mode -->
+                </div>
+            </div>
+
+            <!-- Physical Memory -->
+            <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+                <h3 class="text-2xl font-bold text-indigo-400 mb-4">Physical Memory (Frames)</h3>
+                <div class="max-h-96 overflow-y-auto pr-2">
+                    <div id="physicalMemory" class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                        <!-- Frames will be dynamically generated -->
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="flex flex-wrap gap-4 mt-6 pt-4 border-t border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 rounded border-2 border-green-500 bg-gray-900"></div>
+                        <span class="text-sm text-gray-400">Free</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 rounded border-2 border-indigo-500 bg-indigo-900"></div>
+                        <span class="text-sm text-gray-400">Occupied</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 rounded border-2 border-red-500 bg-red-900"></div>
+                        <span class="text-sm text-gray-400">Page Fault</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 rounded border-2 border-green-500 bg-green-900"></div>
+                        <span class="text-sm text-gray-400">TLB/Page Hit</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TLB Display -->
+            <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-cyan-400">Translation Lookaside Buffer (TLB)</h3>
+                    <div class="flex space-x-4 text-sm">
+                        <span class="text-green-400">Hits: <span id="tlbHitCount">0</span></span>
+                        <span class="text-red-400">Misses: <span id="tlbMissCount">0</span></span>
+                    </div>
+                </div>
+                <div id="tlbDisplay" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- TLB entries will be dynamically generated -->
+                </div>
+            </div>
+
+            <!-- Page Tables -->
+            <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+                <h3 class="text-2xl font-bold text-purple-400 mb-4">Page Tables</h3>
+                <div class="max-h-96 overflow-y-auto pr-2">
+                    <div id="pageTables" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Page tables will be dynamically generated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Free Frames -->
+            <div class="glass-card rounded-xl p-6 mb-6 shadow-2xl">
+                <h3 class="text-2xl font-bold text-green-400 mb-4">Free Frames</h3>
+                <div id="freeFrames" class="flex flex-wrap gap-2">
+                    <!-- Free frames will be dynamically generated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Log / Timeline -->
+        <div id="eventLog" class="glass-card rounded-xl p-6 shadow-2xl hidden">
+            <h2 class="text-2xl font-bold text-yellow-400 mb-4">Event Timeline</h2>
+            
+            <!-- Search and Filter -->
+            <div class="flex space-x-4 mb-4">
+                <input type="text" id="logSearch" placeholder="Search events..." 
+                       class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                <select id="logFilter" class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">All Events</option>
+                    <option value="page_fault">Page Faults</option>
+                    <option value="tlb_hit">TLB Hits</option>
+                    <option value="page_hit">Page Hits</option>
+                    <option value="process_complete">Process Complete</option>
+                </select>
+                <button id="jumpToFaultBtn" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg transition-all whitespace-nowrap">
+                    Jump to Next Fault
+                </button>
+            </div>
+            
+            <!-- Log Entries -->
+            <div id="logEntries" class="space-y-2 max-h-96 overflow-y-auto">
+                <!-- Log entries will be dynamically generated -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="glass-card rounded-xl p-8 text-center">
+            <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-xl font-semibold text-white">Running Implementation...</p>
+            <p class="text-sm text-gray-400 mt-2">Please wait while we process the simulation</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-20 right-6 z-50 space-y-2">
+        <!-- Toasts will be dynamically generated -->
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app_enhanced.js"></script>
+</body>
+</html>
